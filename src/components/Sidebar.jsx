@@ -142,7 +142,7 @@ export default function Sidebar({ collapsed, onToggle }) {
           <LogOut size={15} className="flex-shrink-0" />
           {!collapsed && <span>Sign Out</span>}
         </button>
-        {!collapsed && <p className="mt-3 text-center text-[10px] text-white/25">v3.0 · Fristine Infotech</p>}
+        {!collapsed && <p className="mt-3 text-center text-[10px] text-white/25">v3.1 · Fristine Infotech</p>}
       </div>
     </aside>
   )
