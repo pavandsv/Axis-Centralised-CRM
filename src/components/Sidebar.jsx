@@ -14,6 +14,9 @@ import { LOGO_ICON, LOGO_ON_DARK, LOGO_WORDMARK } from '../assets/brand'
 export function navFor(role) {
   const items = []
   if (can(role, 'viewDashboard')) items.push({ to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' })
+  // Analytics sits directly under Dashboard — the two reporting screens belong
+  // together, above the day-to-day working screens.
+  if (can(role, 'viewDashboard')) items.push({ to: '/analytics', icon: BarChart3, label: 'Analytics' })
   if (can(role, 'viewOwnLeads')) {
     items.push({
       to: '/leads',
@@ -23,7 +26,6 @@ export function navFor(role) {
     items.push({ to: '/tasks', icon: CalendarCheck, label: 'Tasks' })
   }
   if (can(role, 'viewCustomer360')) items.push({ to: '/customer360', icon: Users, label: 'Customer 360' })
-  if (can(role, 'viewDashboard')) items.push({ to: '/analytics', icon: BarChart3, label: 'Analytics' })
   // Audit is a dedicated section (first login, last login, all touchpoints).
   // Restricted to the roles holding config/full access — AFL to confirm the list.
   if (['IT', 'SUPER', 'HO', 'PRODUCT_TEAM'].includes(role)) {

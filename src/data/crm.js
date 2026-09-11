@@ -154,6 +154,30 @@ const countBy = (a, f) => a.reduce((m, x) => { const k = f(x); m[k] = (m[k] || 0
 export const CONTACTED = ['Not interested', 'Follow-up', 'Login Initiated', 'Sanctioned', 'Disbursed']
 export const QUALIFIED = ['Sanctioned', 'Disbursed']
 
+/**
+ * Widget definitions. ONE query per widget, used for both the number on the
+ * tile and the list behind it, so the two can never describe different things.
+ *
+ * These are deliberately CURRENT-STATUS sets, not cumulative funnel reach. A
+ * disbursed lead was of course contacted and sanctioned on its way through, so
+ * the funnel reading put it inside Contacted and Qualified as well — which made
+ * clicking "Qualified" show disbursed leads. Each tile now lists exactly the
+ * statuses it names, and the sets do not overlap. The funnel view still exists,
+ * in its proper place: the Platform Activity chart.
+ */
+const CONTACTED_NOW = ['Not interested', 'Follow-up', 'Login Initiated']
+
+export const WIDGET_QUERY = {
+  openLeads: (book) => book.filter(isOpen),
+  untouched: (book) => book.filter((l) => isUntouched(l, TODAY)),
+  contacted: (book, range) =>
+    book.filter((l) => CONTACTED_NOW.includes(l.leadStatus) && milestoneInRange(l, 'contactedOn', range)),
+  qualified: (book, range) =>
+    book.filter((l) => l.leadStatus === 'Sanctioned' && milestoneInRange(l, 'sanctionedOn', range)),
+  disbursed: (book, range) =>
+    book.filter((l) => l.leadStatus === 'Disbursed' && milestoneInRange(l, 'disbursedOn', range)),
+}
+
 // ------------------------------------------------- the six dashboard widgets
 /**
  * MOM: "Six widgets were agreed covering Users, Open Leads, Contacted,
@@ -170,13 +194,12 @@ export function widgets(user, range) {
     (u) => !logins.find((l) => l.id === u.id)?.lastLogin,
   ).length
 
-  const open = book.filter(isOpen)
-  const untouched = book.filter((l) => isUntouched(l, TODAY))
-
   const received = book.filter((l) => inRange(l, range))
-  const contacted = book.filter((l) => milestoneInRange(l, 'contactedOn', range))
-  const qualified = book.filter((l) => milestoneInRange(l, 'sanctionedOn', range))
-  const disbursed = book.filter((l) => milestoneInRange(l, 'disbursedOn', range))
+  const open = WIDGET_QUERY.openLeads(book, range)
+  const untouched = WIDGET_QUERY.untouched(book, range)
+  const contacted = WIDGET_QUERY.contacted(book, range)
+  const qualified = WIDGET_QUERY.qualified(book, range)
+  const disbursed = WIDGET_QUERY.disbursed(book, range)
 
   return [
     {
@@ -200,13 +223,13 @@ export function widgets(user, range) {
       detail: 'still being worked, as of today',
     },
     {
-      key: 'contacted', label: 'Contacted', kind: 'flow',
+      key: 'contacted', label: 'Leads Contacted', kind: 'flow',
       value: contacted.length,
       sub: received.length ? `${pct(contacted.length, received.length)}% of leads received` : '—',
-      detail: 'first contact made in this period',
+      detail: 'contacted in this period and not yet sanctioned or disbursed',
     },
     {
-      key: 'untouched', label: 'Untouched', kind: 'stock',
+      key: 'untouched', label: 'Untouched Leads', kind: 'stock',
       value: untouched.length,
       sub: `New beyond ${AGEING_DAYS} days`,
       detail: 'breaching the ageing rule right now',
@@ -215,14 +238,14 @@ export function widgets(user, range) {
     {
       key: 'qualified', label: 'Qualified', kind: 'flow',
       value: qualified.length,
-      sub: 'Sanctioned in this period',
-      detail: 'reached Sanctioned',
+      sub: 'Sanctioned, awaiting disbursal',
+      detail: 'currently at Sanctioned',
     },
     {
       key: 'disbursed', label: 'Disbursed', kind: 'flow',
       value: disbursed.length,
       sub: formatINR(sum(disbursed, (l) => l.offerAmount)),
-      detail: 'funded in this period',
+      detail: 'currently Disbursed, funded in this period',
       tone: 'good',
     },
   ]
@@ -240,16 +263,10 @@ export function widgetUsers(user) {
 /** Leads behind a widget, so every tile can drill through to its own list. */
 export function widgetLeads(user, range, key) {
   const book = visibleLeads(user, liveLeads())
-  switch (key) {
-    case 'openLeads': return book.filter(isOpen)
-    case 'untouched': return book.filter((l) => isUntouched(l, TODAY))
-    case 'contacted': return book.filter((l) => milestoneInRange(l, 'contactedOn', range))
-    case 'qualified': return book.filter((l) => milestoneInRange(l, 'sanctionedOn', range))
-    case 'disbursed': return book.filter((l) => milestoneInRange(l, 'disbursedOn', range))
-    // 'users' is not a lead metric; the caller must use widgetUsers().
-    case 'users': return []
-    default: return book.filter((l) => inRange(l, range))
-  }
+  // 'users' is not a lead metric; the caller must use widgetUsers().
+  if (key === 'users') return []
+  const query = WIDGET_QUERY[key]
+  return query ? query(book, range) : book.filter((l) => inRange(l, range))
 }
 
 // ------------------------------------------------ the nine dashboard components

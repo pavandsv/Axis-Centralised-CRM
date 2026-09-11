@@ -29,6 +29,21 @@ for (const role of ['SUPER', 'HO', 'PRODUCT_TEAM', 'BH', 'NH', 'ZH', 'RH', 'AH',
       continue
     }
     if (drilled !== w.value) note(`${role} widget "${w.key}": value ${w.value}, drill ${drilled}`)
+
+    // Each tile must list EXACTLY the statuses it names. Cumulative funnel
+    // reach used to put disbursed leads inside Contacted and Qualified.
+    const ALLOWED = {
+      openLeads: ['New', 'Not reachable', 'Follow-up', 'Login Initiated', 'Sanctioned'],
+      untouched: ['New'],
+      contacted: ['Not interested', 'Follow-up', 'Login Initiated'],
+      qualified: ['Sanctioned'],
+      disbursed: ['Disbursed'],
+    }[w.key]
+    if (ALLOWED) {
+      const stray = [...new Set(widgetLeads(u, range, w.key).map((l) => l.leadStatus))]
+        .filter((st) => !ALLOWED.includes(st))
+      if (stray.length) note(`${role} widget "${w.key}" returns out-of-scope statuses: ${stray.join(', ')}`)
+    }
   }
 
   // 2. chart totals must not exceed the book they claim to describe

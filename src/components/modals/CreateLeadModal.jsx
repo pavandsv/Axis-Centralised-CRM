@@ -284,7 +284,7 @@ export default function CreateLeadModal({ currentUser, onClose, onCreated }) {
       <div className="mt-6 flex gap-3">
         <CancelButton onClick={onClose} />
         <button onClick={submit} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#861D3F] py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#A42B55]">
-          Create &amp; route <ArrowRight size={14} />
+          Create Lead <ArrowRight size={14} />
         </button>
       </div>
     </Modal>

@@ -344,56 +344,47 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* ---------- 9. SLA Compliance · 4. Ageing Leads · 8. Data Quality ---------- */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        <Panel title="SLA Compliance" icon={ShieldCheck}>
-          <div className="p-4">
-            <div className="mb-4 flex items-end justify-between">
-              <div>
-                <p className="text-3xl font-bold leading-none text-slate-800">{sla.compliance}%</p>
-                <p className="mt-1 text-xs text-slate-400">
-                  actioned within the {AGEING_DAYS}-day rule
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm font-bold text-slate-700">{sla.avgResponseHours}h</p>
-                <p className="text-[10px] text-slate-400">avg first response</p>
-              </div>
+      {/* ---------- 3. Campaigns · 4. Ageing Leads ---------- */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <Panel title="Campaigns" icon={Zap} count={campaigns.length}>
+          {campaigns.length === 0 ? (
+            <Empty>No campaign activity in this period</Empty>
+          ) : (
+            <div className="max-h-[320px] overflow-auto">
+              <table className="w-full">
+                <thead className="sticky top-0 bg-af-bg">
+                  <tr className="border-b border-af-border">
+                    {['Campaign', 'Source', 'Leads', 'Contacted', 'Disbursed', 'Rejected', 'Disbursal to Lead Ratio', 'Value'].map((h) => (
+                      <th key={h} className="whitespace-nowrap px-3 py-2 text-left text-[11px] font-semibold text-slate-400">
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {campaignPage.pageRows.map((c) => (
+                    <tr key={c.campaignId} className="tbl-row">
+                      <td className="px-3 py-2">
+                        <p className="text-xs font-semibold text-gray-800">{c.name}</p>
+                        <p className="text-[10px] text-slate-400">
+                          {c.channel}
+                          {c.active ? ' · live' : ''}
+                        </p>
+                      </td>
+                      <td className="px-3 py-2 text-[11px] text-slate-500">{c.source}</td>
+                      <td className="px-3 py-2 text-xs text-slate-600" style={{ fontVariantNumeric: 'tabular-nums' }}>{c.leads}</td>
+                      <td className="px-3 py-2 text-xs text-slate-600" style={{ fontVariantNumeric: 'tabular-nums' }}>{c.contacted}</td>
+                      <td className="px-3 py-2 text-xs text-slate-600" style={{ fontVariantNumeric: 'tabular-nums' }}>{c.disbursed}</td>
+                      <td className="px-3 py-2 text-xs text-slate-600" style={{ fontVariantNumeric: 'tabular-nums' }}>{c.rejected}</td>
+                      <td className="px-3 py-2 text-xs font-bold" style={{ color: CATEGORICAL[0] }}>{c.disbursalRate}%</td>
+                      <td className="whitespace-nowrap px-3 py-2 text-xs font-semibold text-slate-700">{formatINR(c.value)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            <div className="mb-3 h-2.5 overflow-hidden rounded-full" style={{ background: ORDINAL_MAROON[0] + '55' }}>
-              <div
-                className="h-full rounded-full transition-all duration-700"
-                style={{
-                  width: `${sla.compliance}%`,
-                  background: sla.compliance < 70 ? STATUS.critical : ORDINAL_MAROON[4],
-                }}
-              />
-            </div>
-            <div className="space-y-1.5">
-              {sla.buckets.map((b, i) => {
-                const total = sla.buckets.reduce((s, x) => s + x.count, 0) || 1
-                return (
-                  <div key={b.label} className="flex items-center gap-2.5">
-                    <span className="w-24 flex-shrink-0 text-[11px] text-slate-500">{b.label}</span>
-                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
-                      <div
-                        className="h-full rounded-full"
-                        style={{ width: `${(b.count / total) * 100}%`, background: ordinalSteps(4)[i] }}
-                      />
-                    </div>
-                    <span className="w-9 flex-shrink-0 text-right text-[11px] font-semibold text-slate-600" style={{ fontVariantNumeric: 'tabular-nums' }}>
-                      {b.count}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-            {sla.breaches > 0 && (
-              <p className="mt-3 flex items-center gap-1.5 text-[11px] font-medium text-red-600">
-                <AlertTriangle size={11} /> {sla.breaches} lead{sla.breaches === 1 ? '' : 's'} breaching
-              </p>
-            )}
-          </div>
+          )}
+          {campaigns.length > 0 && <Pagination {...campaignPage.props} noun="campaigns" compact />}
         </Panel>
 
         <ChartCard
@@ -411,23 +402,6 @@ export default function Dashboard() {
           colors={ordinalSteps(ageing.length)}
           onDrill={drillAgeing}
           drillHint="Click a bucket to see the aged leads"
-        />
-
-        <ChartCard
-          title="Data Quality by Reason"
-          subtitle="Why leads did not convert"
-          icon={Database}
-          kind="share"
-          data={dq.slice(0, 8)}
-          nameKey="name"
-          valueKey="value"
-          xLabel="Reason"
-          height={210}
-          types={['hbar', 'donut', 'table']}
-          defaultType="hbar"
-          colors={ordinalSteps(Math.min(dq.length, 8))}
-          onDrill={drillReason}
-          drillHint="Click a reason to see those leads"
         />
       </div>
 
@@ -545,8 +519,75 @@ export default function Dashboard() {
         </Panel>
       </div>
 
-      {/* ---------- 5. Unallocated Leads · 3. Campaigns ---------- */}
+      {/* ---------- 9. SLA Compliance · 8. Data Quality · 5. Unallocated Leads ---------- */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        <Panel title="SLA Compliance" icon={ShieldCheck}>
+          <div className="p-4">
+            <div className="mb-4 flex items-end justify-between">
+              <div>
+                <p className="text-3xl font-bold leading-none text-slate-800">{sla.compliance}%</p>
+                <p className="mt-1 text-xs text-slate-400">
+                  actioned within the {AGEING_DAYS}-day rule
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-bold text-slate-700">{sla.avgResponseHours}h</p>
+                <p className="text-[10px] text-slate-400">avg first response</p>
+              </div>
+            </div>
+            <div className="mb-3 h-2.5 overflow-hidden rounded-full" style={{ background: ORDINAL_MAROON[0] + '55' }}>
+              <div
+                className="h-full rounded-full transition-all duration-700"
+                style={{
+                  width: `${sla.compliance}%`,
+                  background: sla.compliance < 70 ? STATUS.critical : ORDINAL_MAROON[4],
+                }}
+              />
+            </div>
+            <div className="space-y-1.5">
+              {sla.buckets.map((b, i) => {
+                const total = sla.buckets.reduce((s, x) => s + x.count, 0) || 1
+                return (
+                  <div key={b.label} className="flex items-center gap-2.5">
+                    <span className="w-24 flex-shrink-0 text-[11px] text-slate-500">{b.label}</span>
+                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
+                      <div
+                        className="h-full rounded-full"
+                        style={{ width: `${(b.count / total) * 100}%`, background: ordinalSteps(4)[i] }}
+                      />
+                    </div>
+                    <span className="w-9 flex-shrink-0 text-right text-[11px] font-semibold text-slate-600" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                      {b.count}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+            {sla.breaches > 0 && (
+              <p className="mt-3 flex items-center gap-1.5 text-[11px] font-medium text-red-600">
+                <AlertTriangle size={11} /> {sla.breaches} lead{sla.breaches === 1 ? '' : 's'} breaching
+              </p>
+            )}
+          </div>
+        </Panel>
+
+        <ChartCard
+          title="Data Quality by Reason"
+          subtitle="Why leads did not convert"
+          icon={Database}
+          kind="share"
+          data={dq.slice(0, 8)}
+          nameKey="name"
+          valueKey="value"
+          xLabel="Reason"
+          height={210}
+          types={['hbar', 'donut', 'table']}
+          defaultType="hbar"
+          colors={ordinalSteps(Math.min(dq.length, 8))}
+          onDrill={drillReason}
+          drillHint="Click a reason to see those leads"
+        />
+
         <Panel
           title="Unallocated Leads"
           icon={MapPinOff}
@@ -636,47 +677,6 @@ export default function Dashboard() {
               <Pagination {...unallocPage.props} noun="leads" compact />
             </>
           )}
-        </Panel>
-
-        <Panel className="lg:col-span-2" title="Campaigns" icon={Zap} count={campaigns.length}>
-          {campaigns.length === 0 ? (
-            <Empty>No campaign activity in this period</Empty>
-          ) : (
-            <div className="max-h-[320px] overflow-auto">
-              <table className="w-full">
-                <thead className="sticky top-0 bg-af-bg">
-                  <tr className="border-b border-af-border">
-                    {['Campaign', 'Source', 'Leads', 'Contacted', 'Disbursed', 'Rejected', 'Disbursal to Lead Ratio', 'Value'].map((h) => (
-                      <th key={h} className="whitespace-nowrap px-3 py-2 text-left text-[11px] font-semibold text-slate-400">
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {campaignPage.pageRows.map((c) => (
-                    <tr key={c.campaignId} className="tbl-row">
-                      <td className="px-3 py-2">
-                        <p className="text-xs font-semibold text-gray-800">{c.name}</p>
-                        <p className="text-[10px] text-slate-400">
-                          {c.channel}
-                          {c.active ? ' · live' : ''}
-                        </p>
-                      </td>
-                      <td className="px-3 py-2 text-[11px] text-slate-500">{c.source}</td>
-                      <td className="px-3 py-2 text-xs text-slate-600" style={{ fontVariantNumeric: 'tabular-nums' }}>{c.leads}</td>
-                      <td className="px-3 py-2 text-xs text-slate-600" style={{ fontVariantNumeric: 'tabular-nums' }}>{c.contacted}</td>
-                      <td className="px-3 py-2 text-xs text-slate-600" style={{ fontVariantNumeric: 'tabular-nums' }}>{c.disbursed}</td>
-                      <td className="px-3 py-2 text-xs text-slate-600" style={{ fontVariantNumeric: 'tabular-nums' }}>{c.rejected}</td>
-                      <td className="px-3 py-2 text-xs font-bold" style={{ color: CATEGORICAL[0] }}>{c.disbursalRate}%</td>
-                      <td className="whitespace-nowrap px-3 py-2 text-xs font-semibold text-slate-700">{formatINR(c.value)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-          {campaigns.length > 0 && <Pagination {...campaignPage.props} noun="campaigns" compact />}
         </Panel>
       </div>
 
