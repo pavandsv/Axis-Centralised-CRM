@@ -1,0 +1,10 @@
+node_modules
+dist
+.DS_Store
+
+# Local env and editor noise
+.env
+.env.*
+*.local
+.vscode/
+.idea/

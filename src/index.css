@@ -1,0 +1,178 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply bg-af-bg text-slate-900;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #f1f5f9;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #861d3f;
+  }
+}
+
+@layer components {
+  /* Two-layer shadow: a tight contact shadow plus a soft ambient one. A single
+     flat shadow is what makes a card look printed on rather than resting on. */
+  .card {
+    @apply rounded-2xl border border-af-border bg-white;
+    box-shadow:
+      0 1px 2px rgba(16, 24, 40, 0.04),
+      0 4px 12px -2px rgba(16, 24, 40, 0.05);
+  }
+
+  /* For cards that are buttons — the lift says "this does something". */
+  .card-interactive {
+    @apply transition-all duration-200;
+  }
+  .card-interactive:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 2px 4px rgba(16, 24, 40, 0.05),
+      0 12px 24px -6px rgba(134, 29, 63, 0.14);
+    border-color: rgba(134, 29, 63, 0.22);
+  }
+
+  .btn-primary {
+    @apply rounded-xl bg-[#861D3F] px-5 py-2.5 text-sm font-semibold text-white transition-all duration-150 hover:bg-[#A8284F] active:scale-[0.98];
+    box-shadow: 0 4px 16px rgba(134, 29, 63, 0.25);
+  }
+
+  .btn-secondary {
+    @apply rounded-xl border border-[#861D3F]/20 bg-[#FDF0F4] px-5 py-2.5 text-sm font-semibold text-[#861D3F] transition-all duration-150 hover:bg-[#FADDE8] active:scale-[0.98];
+  }
+
+  .btn-ghost {
+    @apply rounded-xl px-4 py-2 text-sm font-medium text-slate-600 transition-all duration-150 hover:bg-gray-100 hover:text-slate-900;
+  }
+
+  .input-field {
+    @apply w-full rounded-xl border border-af-border bg-white py-2.5 pl-4 pr-10 text-sm text-slate-900 placeholder-slate-400 transition-all duration-150;
+  }
+  .input-field:focus {
+    @apply border-[#861D3F]/40 outline-none ring-2 ring-[#861D3F]/20;
+  }
+  select.input-field {
+    @apply cursor-pointer appearance-none pr-10;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+  }
+
+  .nav-item {
+    @apply relative flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150;
+    color: rgba(255, 255, 255, 0.62);
+  }
+  .nav-item:hover {
+    background-color: rgba(255, 255, 255, 0.09);
+    @apply text-white;
+  }
+  .nav-item-active {
+    background-color: rgba(255, 255, 255, 0.16);
+    @apply font-semibold text-white;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+  /* A bright rail on the active item — the strongest "you are here" signal
+     there is, and it survives being scanned at a glance. */
+  .nav-item-active::before {
+    content: '';
+    @apply absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-white;
+  }
+
+  .stat-card {
+    @apply relative flex flex-col overflow-hidden rounded-2xl border border-af-border bg-white p-4;
+    box-shadow:
+      0 1px 2px rgba(16, 24, 40, 0.04),
+      0 4px 12px -2px rgba(16, 24, 40, 0.05);
+  }
+
+  /* A hairline of brand along the top edge — enough colour to tie the row to
+     the sidebar without painting whole tiles. */
+  .stat-card::before {
+    content: '';
+    @apply absolute inset-x-0 top-0 h-[3px];
+    background: linear-gradient(90deg, #861D3F, #B02A50);
+    opacity: 0;
+    transition: opacity 200ms ease;
+  }
+  .stat-card:hover::before,
+  .stat-card[data-active='true']::before {
+    opacity: 1;
+  }
+
+  /* The tinted square that carries a tile's or panel's icon. */
+  .icon-chip {
+    @apply flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl;
+    background: #FDF0F4;
+    color: #861D3F;
+  }
+
+  .tbl-row {
+    @apply border-b transition-colors duration-100;
+    border-color: rgba(228, 233, 242, 0.6);
+  }
+  .tbl-row:hover {
+    background-color: rgba(253, 240, 244, 0.4);
+  }
+
+  .badge-status {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold;
+  }
+
+  .section-title {
+    @apply flex items-center gap-2 text-sm font-semibold text-slate-900;
+  }
+
+  /* The page's anchor panel — brand tint rather than another white slab. */
+  .hero-panel {
+    @apply relative overflow-hidden rounded-2xl border;
+    border-color: rgba(134, 29, 63, 0.12);
+    background:
+      radial-gradient(1200px 200px at 0% 0%, rgba(134, 29, 63, 0.07), transparent 60%),
+      linear-gradient(135deg, #FFFFFF 0%, #FDF7F9 100%);
+    box-shadow:
+      0 1px 2px rgba(16, 24, 40, 0.04),
+      0 4px 12px -2px rgba(16, 24, 40, 0.05);
+  }
+
+  .shadow-card {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+  }
+}
+
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: #fff !important;
+  border: 1px solid #e4e9f2 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1) !important;
+  font-size: 12px !important;
+  color: #0f172a !important;
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
