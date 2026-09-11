@@ -52,8 +52,8 @@ const CONVERSION_COLUMN = {
 /** A card wrapper for the components that are tables rather than charts. */
 function Panel({ title, icon: Icon, count, tone, action, children, className = '' }) {
   return (
-    <div className={`card overflow-hidden ${className}`}>
-      <div className="flex items-center gap-2 border-b border-af-border px-4 py-3.5">
+    <div className={`card flex flex-col overflow-hidden ${className}`}>
+      <div className="flex flex-shrink-0 items-center gap-2 border-b border-af-border px-4 py-3.5">
         <Icon size={15} className={tone === 'critical' ? 'text-red-600' : 'text-[#861D3F]'} />
         <h3 className="section-title truncate">{title}</h3>
         {count != null && (
@@ -69,7 +69,7 @@ function Panel({ title, icon: Icon, count, tone, action, children, className = '
         )}
         {action && <div className="ml-auto flex-shrink-0">{action}</div>}
       </div>
-      {children}
+      <div className="flex min-h-0 flex-1 flex-col">{children}</div>
     </div>
   )
 }
@@ -522,7 +522,7 @@ export default function Dashboard() {
       {/* ---------- 9. SLA Compliance · 8. Data Quality · 5. Unallocated Leads ---------- */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <Panel title="SLA Compliance" icon={ShieldCheck}>
-          <div className="p-4">
+          <div className="flex flex-1 flex-col p-4">
             <div className="mb-4 flex items-end justify-between">
               <div>
                 <p className="text-3xl font-bold leading-none text-slate-800">{sla.compliance}%</p>
@@ -544,13 +544,13 @@ export default function Dashboard() {
                 }}
               />
             </div>
-            <div className="space-y-1.5">
+            <div className="flex flex-1 flex-col justify-around gap-2 py-1">
               {sla.buckets.map((b, i) => {
                 const total = sla.buckets.reduce((s, x) => s + x.count, 0) || 1
                 return (
                   <div key={b.label} className="flex items-center gap-2.5">
                     <span className="w-24 flex-shrink-0 text-[11px] text-slate-500">{b.label}</span>
-                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
+                    <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-100">
                       <div
                         className="h-full rounded-full"
                         style={{ width: `${(b.count / total) * 100}%`, background: ordinalSteps(4)[i] }}
@@ -564,7 +564,7 @@ export default function Dashboard() {
               })}
             </div>
             {sla.breaches > 0 && (
-              <p className="mt-3 flex items-center gap-1.5 text-[11px] font-medium text-red-600">
+              <p className="mt-3 flex flex-shrink-0 items-center gap-1.5 text-[11px] font-medium text-red-600">
                 <AlertTriangle size={11} /> {sla.breaches} lead{sla.breaches === 1 ? '' : 's'} breaching
               </p>
             )}
@@ -580,7 +580,10 @@ export default function Dashboard() {
           nameKey="name"
           valueKey="value"
           xLabel="Reason"
-          height={210}
+          // Sized so this card's content lands level with the two adaptive
+          // panels beside it. Pushing it higher just raises the whole row —
+          // the residual gap is the card's own legend chrome, not the plot.
+          height={384}
           types={['hbar', 'donut', 'table']}
           defaultType="hbar"
           colors={ordinalSteps(Math.min(dq.length, 8))}
@@ -631,7 +634,7 @@ export default function Dashboard() {
                   <CheckCircle2 size={12} /> {flash}
                 </p>
               )}
-              <div className="max-h-[320px] divide-y divide-af-border/50 overflow-auto">
+              <div className="max-h-[300px] flex-1 divide-y divide-af-border/50 overflow-auto">
                 {unallocPage.pageRows.map((l) => (
                   <div key={l.leadId} className="flex items-start gap-2.5 px-4 py-3">
                     {mayAssign && (
