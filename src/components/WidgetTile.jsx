@@ -62,8 +62,10 @@ export default function WidgetTile({ widget, active, onClick }) {
         <p className="mt-1.5 text-[11px] leading-snug text-slate-400">{widget.sub}</p>
       </div>
 
+      {/* The Users tile drills to people, so it must not invite the reader to
+          "view leads" — the label has to match what opens. */}
       <span className="mt-2 flex items-center gap-1 text-[10px] font-semibold text-slate-300 transition-colors group-hover:text-[#861D3F]">
-        View leads
+        {widget.entity === 'users' ? 'View users' : 'View leads'}
         <ArrowRight size={10} className="transition-transform duration-200 group-hover:translate-x-0.5" />
       </span>
     </button>

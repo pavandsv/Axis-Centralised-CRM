@@ -10,7 +10,7 @@
 import { USERS } from '../src/data/generated/org.js'
 import { LEADS } from '../src/data/generated/leads.js'
 import { visibleLeads } from '../src/logic/visibility.js'
-import { leadsByGeography, platformActivity } from '../src/data/crm.js'
+import { platformActivity } from '../src/data/crm.js'
 
 const CONTACTED_SET = new Set(['Not interested', 'Follow-up', 'Login Initiated', 'Sanctioned', 'Disbursed'])
 const LOGGED_IN_SET = new Set(['Login Initiated', 'Sanctioned', 'Disbursed'])
@@ -47,26 +47,6 @@ for (const role of ['BH', 'ZH', 'RH', 'AH', 'SM', 'DST']) {
   }
   const empties = months.filter((m) => m.leads === 0).length
   console.log(`${role.padEnd(4)} ${book.length.toString().padStart(4)} leads · ${months.length} months plotted · ${empties} empty`)
-}
-
-// Lead Geography: the map, the ranked list and the drill must agree.
-for (const role of ['BH', 'ZH', 'RH', 'AH', 'SM', 'DST']) {
-  const user = USERS.find((u) => u.role === role)
-  if (!user) continue
-  const book = visibleLeads(user, LEADS)
-  for (const level of ['state', 'region', 'zone']) {
-    const { rows, groups } = leadsByGeography(book, level)
-    for (const g of groups) {
-      const drilled = book.filter((l) => l[level] === g.name).length
-      checked += 1
-      if (drilled !== g.value) fails.push(`${role} geo/${level} ${g.name}: list ${g.value}, drill ${drilled}`)
-    }
-    for (const r of rows) {
-      if (!groups.some((g) => g.name === r.group)) {
-        fails.push(`${role} geo/${level}: polygon ${r.name} points at unknown group ${r.group}`)
-      }
-    }
-  }
 }
 
 console.log(`\n${checked} chart-to-drill pairs checked`)

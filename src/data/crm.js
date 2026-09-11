@@ -15,7 +15,7 @@ import { CAMPAIGNS } from './generated/campaigns.js'
 import { BRANCHES, resolvePincode } from './geography.js'
 import { PRODUCTS, REASONS } from './masters.js'
 import { ROLES, can } from '../config/roles.js'
-import { visibleLeads, subordinates, directReports, scopeDescription } from '../logic/visibility.js'
+import { visibleLeads, visibleUsers, subordinates, directReports, scopeDescription } from '../logic/visibility.js'
 import {
   AGEING_BUCKETS, AGEING_DAYS, OPEN_STATUSES, ageDays, ageingProfile, daysInStatus,
   isFollowUpDueToday, isOpen, isOverdueFollowUp, isUntouched,
@@ -163,8 +163,12 @@ export function widgets(user, range) {
   // STOCK metrics describe the book as it stands today and are not date-filtered.
   // FLOW metrics count what happened inside the selected range.
   const book = visibleLeads(user, liveLeads())
-  const team = subordinates(user, USERS)
-  const activeTeam = team.filter((u) => u.status !== 'Inactive')
+  const scopeUsers = visibleUsers(user, USERS)
+  const activeUsers = scopeUsers.filter((u) => u.status !== 'Inactive')
+  const logins = loginActivity()
+  const neverLoggedIn = scopeUsers.filter(
+    (u) => !logins.find((l) => l.id === u.id)?.lastLogin,
+  ).length
 
   const open = book.filter(isOpen)
   const untouched = book.filter((l) => isUntouched(l, TODAY))
@@ -177,9 +181,17 @@ export function widgets(user, range) {
   return [
     {
       key: 'users', label: 'Users', kind: 'stock',
-      value: user.role === 'DST' ? 1 : activeTeam.length,
-      sub: user.role === 'DST' ? 'Just you' : `${team.length} in your line`,
-      detail: 'active users reporting to you',
+      // Users, not leads: the count of people who can sign in within this
+      // person's scope. Central roles have nobody reporting to them, so
+      // counting subordinates used to read 0 for HO, Product Team and the
+      // Super User — the very roles that see everything.
+      entity: 'users',
+      value: activeUsers.length,
+      sub:
+        user.role === 'DST'
+          ? 'Just you'
+          : `${neverLoggedIn} never signed in · ${scopeUsers.length - activeUsers.length} inactive`,
+      detail: 'active user accounts you can see',
     },
     {
       key: 'openLeads', label: 'Open Leads', kind: 'stock',
@@ -216,6 +228,15 @@ export function widgets(user, range) {
   ]
 }
 
+/** The users behind the Users tile — it drills to people, not leads. */
+export function widgetUsers(user) {
+  const rows = visibleUsers(user, USERS)
+  const logins = loginActivity()
+  return rows
+    .map((u) => ({ ...u, login: logins.find((l) => l.id === u.id) || null }))
+    .sort((a, b) => (b.login?.lastLogin || '').localeCompare(a.login?.lastLogin || ''))
+}
+
 /** Leads behind a widget, so every tile can drill through to its own list. */
 export function widgetLeads(user, range, key) {
   const book = visibleLeads(user, liveLeads())
@@ -225,6 +246,8 @@ export function widgetLeads(user, range, key) {
     case 'contacted': return book.filter((l) => milestoneInRange(l, 'contactedOn', range))
     case 'qualified': return book.filter((l) => milestoneInRange(l, 'sanctionedOn', range))
     case 'disbursed': return book.filter((l) => milestoneInRange(l, 'disbursedOn', range))
+    // 'users' is not a lead metric; the caller must use widgetUsers().
+    case 'users': return []
     default: return book.filter((l) => inRange(l, range))
   }
 }
@@ -261,46 +284,6 @@ export function platformActivity(leads, { months: window = 12 } = {}) {
       conversion: pct(disbursed, slice.length),
     }
   })
-}
-
-/**
- * Lead volume by geography, for the India map.
- *
- * Returns two views of the same slice: `rows` is one entry per state polygon
- * (so the map can colour it), `groups` is one entry per aggregate at the chosen
- * level (so the ranked list and the drill-down agree with it).
- *
- * At region level a state can belong to more than one region — Uttar Pradesh
- * sits in both Delhi NCR and North India — so the polygon takes whichever
- * region actually holds more of that state's leads rather than an arbitrary
- * first match.
- */
-export function leadsByGeography(leads, level = 'state') {
-  const totals = new Map()
-  for (const l of leads) {
-    const g = l[level]
-    if (!g) continue
-    totals.set(g, (totals.get(g) || 0) + 1)
-  }
-
-  const perState = new Map()
-  for (const l of leads) {
-    if (!l.state || !l[level]) continue
-    if (!perState.has(l.state)) perState.set(l.state, new Map())
-    const m = perState.get(l.state)
-    m.set(l[level], (m.get(l[level]) || 0) + 1)
-  }
-
-  const rows = [...perState.entries()].map(([state, m]) => {
-    const group = [...m.entries()].sort((a, b) => b[1] - a[1])[0][0]
-    return { name: state, group, value: totals.get(group) || 0, own: m.get(group) }
-  })
-
-  const groups = [...totals.entries()]
-    .map(([name, value]) => ({ name, value, pct: pct(value, leads.length) }))
-    .sort((a, b) => b.value - a.value)
-
-  return { rows, groups }
 }
 
 /** 2. Lead Distribution by Product. */

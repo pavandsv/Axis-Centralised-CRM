@@ -1,24 +1,24 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   Activity, AlertTriangle, BarChart3, CalendarClock, Database, Layers,
-  ArrowLeftRight, CheckCircle2, Map as MapIcon, MapPinOff, ShieldCheck, Table, TrendingUp, Users, Zap,
+  ArrowLeftRight, CheckCircle2, MapPinOff, ShieldCheck, TrendingUp, Users, Zap,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import {
   RANGE_PRESETS, TODAY, AGEING_DAYS,
   ageingBucketLeads, ageingLeads, campaignPerformance, dataQualityByReason, formatINR,
-  leadsByGeography, leadsByProduct, overdueFollowUps, platformActivity, resolveRange, scopeDescription,
+  leadsByProduct, overdueFollowUps, platformActivity, resolveRange, scopeDescription,
   scopedLeads, slaCompliance, summarise, teamProductivity, teamProductivityHeadline,
-  unallocatedLeads, widgetLeads, widgets,
+  unallocatedLeads, widgetLeads, widgetUsers, widgets,
 } from '../data/crm'
 import { can, canReassign } from '../config/roles'
 import { ReassignLeadModal } from '../components/modals/ReassignLeadModal'
 import BulkAssignModal from '../components/modals/BulkAssignModal'
 import { storeVersion, subscribe as subscribeLeads } from '../logic/leadStore'
 import ChartCard from '../components/charts/ChartCard'
-import IndiaMap from '../components/charts/IndiaMap'
 import WidgetTile from '../components/WidgetTile'
 import LeadListDrawer from '../components/LeadListDrawer'
+import UserListDrawer from '../components/UserListDrawer'
 import { AgeingBadge, ProductBadge, StatusBadge } from '../components/Badges'
 import { CATEGORICAL, FUNNEL_PALETTE, ORDINAL_MAROON, STATUS, ordinalSteps } from '../theme/chartTheme'
 import Pagination, { usePagination } from '../components/Pagination'
@@ -92,8 +92,7 @@ export default function Dashboard() {
   const [assignOne, setAssignOne] = useState(null)
   const [assignMany, setAssignMany] = useState(false)
   const [flash, setFlash] = useState(null)
-  const [geoLevel, setGeoLevel] = useState('state')
-  const [geoView, setGeoView] = useState('map')
+  const [userDrill, setUserDrill] = useState(null)
 
   const range = useMemo(() => resolveRange(preset, custom), [preset, custom])
   const leads = useMemo(() => scopedLeads(currentUser, range), [currentUser, range])
@@ -110,7 +109,6 @@ export default function Dashboard() {
   }, [activity])
 
   const products = useMemo(() => leadsByProduct(leads), [leads])
-  const geo = useMemo(() => leadsByGeography(leads, geoLevel), [leads, geoLevel])
   const campaigns = useMemo(() => campaignPerformance(leads), [leads])
   const ageing = useMemo(() => ageingLeads(book), [book])
   const unalloc = useMemo(() => unallocatedLeads(book), [book])
@@ -170,8 +168,15 @@ export default function Dashboard() {
     )
   }
 
-  const openDrill = (key, title) =>
+  const openDrill = (key, title) => {
+    // The Users tile counts people, so it opens the user list. Sending it to
+    // the lead drawer showed a number unrelated to the one on the tile.
+    if (key === 'users') {
+      setUserDrill(widgetUsers(currentUser))
+      return
+    }
     setDrill({ title, leads: widgetLeads(currentUser, range, key), subtitle: range.label })
+  }
 
   /** Chart drill-through: map a clicked mark back to its underlying leads. */
   const drillActivity = ({ label, seriesKey }) => {
@@ -191,11 +196,6 @@ export default function Dashboard() {
     const rows = bySeries[seriesKey] || inMonth
     const seriesLabel = FUNNEL_SERIES.find((f) => f.key === seriesKey)?.label || 'Leads received'
     setDrill({ title: `${seriesLabel} — ${month.monthLabel}`, leads: rows, subtitle: 'Platform Activity' })
-  }
-
-  const drillGeo = (name) => {
-    const rows = leads.filter((l) => l[geoLevel] === name)
-    setDrill({ title: `${name} — ${rows.length} lead${rows.length === 1 ? '' : 's'}`, leads: rows, subtitle: `Lead Geography · by ${geoLevel}` })
   }
 
   const drillProduct = ({ label }) => {
@@ -342,137 +342,6 @@ export default function Dashboard() {
           onDrill={drillProduct}
           drillHint="Click a product to list its leads"
         />
-      </div>
-
-      {/* ---------- Lead Geography — beyond the MOM's nine, added on request ---------- */}
-      <div className="card overflow-hidden">
-        <div className="flex flex-wrap items-center gap-2 border-b border-af-border px-4 py-3.5">
-          <MapIcon size={15} className="text-[#861D3F]" />
-          <h3 className="section-title">Lead Geography</h3>
-          <span className="text-xs text-slate-400">
-            {geo.groups.length} {geoLevel}{geo.groups.length === 1 ? '' : 's'} with leads · {range.label}
-          </span>
-
-          <div className="ml-auto flex items-center gap-2">
-            <div role="group" aria-label="Aggregate by" className="flex items-center gap-0.5 rounded-xl border border-af-border bg-af-bg p-0.5">
-              {['state', 'region', 'zone'].map((lvl) => (
-                <button
-                  key={lvl}
-                  type="button"
-                  onClick={() => setGeoLevel(lvl)}
-                  aria-pressed={geoLevel === lvl}
-                  className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold capitalize transition-all ${
-                    geoLevel === lvl ? 'bg-[#861D3F] text-white shadow-sm' : 'text-slate-400 hover:bg-white hover:text-[#861D3F]'
-                  }`}
-                >
-                  {lvl}
-                </button>
-              ))}
-            </div>
-            <div role="group" aria-label="Change view" className="flex items-center gap-0.5 rounded-xl border border-af-border bg-af-bg p-0.5">
-              {[['map', MapIcon, 'Map'], ['table', Table, 'Table']].map(([k, Icon, label]) => (
-                <button
-                  key={k}
-                  type="button"
-                  onClick={() => setGeoView(k)}
-                  title={label}
-                  aria-label={`Show as ${label}`}
-                  aria-pressed={geoView === k}
-                  className={`flex h-7 w-7 items-center justify-center rounded-lg transition-all ${
-                    geoView === k ? 'bg-[#861D3F] text-white shadow-sm' : 'text-slate-400 hover:bg-white hover:text-[#861D3F]'
-                  }`}
-                >
-                  <Icon size={13} />
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <p className="px-4 pt-2.5 text-[11px] font-medium text-[#861D3F]">
-          ✣ Click a {geoLevel} to see its leads
-        </p>
-
-        {!geo.groups.length ? (
-          <Empty>No leads in this slice</Empty>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2">
-            <div>
-              {geoView === 'map' ? (
-                <IndiaMap
-                  rows={geo.rows}
-                  height={520}
-                  onDrill={({ label }) => {
-                    const row = geo.rows.find((r) => r.name === label)
-                    drillGeo(row ? row.group : label)
-                  }}
-                />
-              ) : (
-                <div className="max-h-[480px] overflow-auto px-4 pb-4 pt-2">
-                  <table className="w-full">
-                    <thead className="sticky top-0 bg-white">
-                      <tr className="border-b border-af-border">
-                        {['State', geoLevel === 'state' ? 'Zone' : geoLevel, 'Leads'].map((h) => (
-                          <th key={h} className="px-3 py-2 text-left text-[11px] font-semibold capitalize text-slate-400 last:text-right">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {[...geo.rows].sort((a, b) => b.own - a.own).map((r) => (
-                        <tr key={r.name} className="tbl-row cursor-pointer" onClick={() => drillGeo(r.group)}>
-                          <td className="px-3 py-2 text-xs font-semibold text-gray-800">{r.name}</td>
-                          <td className="px-3 py-2 text-[11px] text-slate-500">{r.group}</td>
-                          <td className="px-3 py-2 text-right text-xs text-slate-600" style={{ fontVariantNumeric: 'tabular-nums' }}>
-                            {r.own.toLocaleString('en-IN')}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-
-            {/* The exact numbers the map can only imply. */}
-            <div className="border-t border-af-border lg:border-l lg:border-t-0">
-              <p className="px-4 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                Ranked by {geoLevel}
-              </p>
-              <div className="max-h-[460px] overflow-auto pb-3">
-                {geo.groups.map((g, i) => (
-                  <button
-                    key={g.name}
-                    type="button"
-                    onClick={() => drillGeo(g.name)}
-                    className="flex w-full items-center gap-2.5 px-4 py-1.5 text-left hover:bg-af-bg"
-                  >
-                    <span className="w-4 flex-shrink-0 text-[10px] text-slate-300" style={{ fontVariantNumeric: 'tabular-nums' }}>
-                      {i + 1}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-xs font-medium text-gray-800">{g.name}</span>
-                      <span className="mt-0.5 block h-1 rounded-full bg-af-bg">
-                        <span
-                          className="block h-1 rounded-full"
-                          style={{
-                            width: `${geo.groups[0].value ? (g.value / geo.groups[0].value) * 100 : 0}%`,
-                            background: ORDINAL_MAROON[Math.min(ORDINAL_MAROON.length - 1, Math.floor((g.value / (geo.groups[0].value || 1)) * ORDINAL_MAROON.length))],
-                          }}
-                        />
-                      </span>
-                    </span>
-                    <span className="flex-shrink-0 text-xs font-bold text-slate-700" style={{ fontVariantNumeric: 'tabular-nums' }}>
-                      {g.value.toLocaleString('en-IN')}
-                    </span>
-                    <span className="w-9 flex-shrink-0 text-right text-[10px] text-slate-400" style={{ fontVariantNumeric: 'tabular-nums' }}>
-                      {g.pct}%
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* ---------- 9. SLA Compliance · 4. Ageing Leads · 8. Data Quality ---------- */}
@@ -833,6 +702,8 @@ export default function Dashboard() {
           }}
         />
       )}
+
+      {userDrill && <UserListDrawer users={userDrill} onClose={() => setUserDrill(null)} />}
 
       {drill && (
         <LeadListDrawer

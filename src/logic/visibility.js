@@ -57,6 +57,23 @@ export function visibleLeads(user, leads) {
   }
 }
 
+/**
+ * Users this person can see. Deliberately NOT the same rule as visibleLeads:
+ *
+ * - ORG-scope and UAM roles see the whole user master. The sales line is a
+ *   tree, but the central roles (HO, Product Team, Super User, IT) sit outside
+ *   it with nobody reporting to them — counting their subordinates returned 0,
+ *   which made the Users widget read zero for exactly the people who can see
+ *   everything.
+ * - Everyone else sees themselves plus their own reporting line.
+ */
+export function visibleUsers(user, users) {
+  if (!user) return []
+  const scope = ROLES[user.role]?.scope
+  if (scope === SCOPE.ORG || can(user.role, 'uam')) return users
+  return [user, ...subordinates(user, users)]
+}
+
 /** Users beneath this one in the reporting line. */
 export function subordinates(user, users) {
   if (!user) return []

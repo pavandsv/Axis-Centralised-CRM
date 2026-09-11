@@ -35,6 +35,11 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
 
   // One representative user per role, so the client can walk the whole hierarchy.
+  // ROLE_CODES is already the Input Sheet's own order — BH is level 1 down to
+  // DST at level 7 — but listing the four central roles straight after DST read
+  // as though HO and the Super User sat BELOW the most junior sales role. They
+  // sit outside the sales line entirely, so the list is grouped and the sales
+  // levels are numbered.
   const profiles = ROLE_CODES.map((code) => {
     const candidates = USERS.filter((u) => u.role === code && u.status !== 'Inactive')
     // Prefer someone who actually owns data, so no demo profile opens empty.
@@ -118,9 +123,22 @@ export default function Login() {
             </div>
 
             <div className="px-3 pt-3 pb-1 max-h-[420px] overflow-y-auto no-scrollbar">
-              {profiles.map(({ user, meta, leadCount }) => {
+              {profiles.map(({ user, meta, leadCount }, i) => {
                 const active = selectedId === user.id
+                const prev = profiles[i - 1]
+                const heading =
+                  i === 0
+                    ? 'Sales hierarchy — highest to lowest'
+                    : !prev.meta.central && meta.central
+                      ? 'Central & administration — outside the sales line'
+                      : null
                 return (
+                  <div key={`g-${user.id}`}>
+                  {heading && (
+                    <p className="px-3 pb-1.5 pt-3 text-[10px] font-bold uppercase tracking-wider text-gray-300">
+                      {heading}
+                    </p>
+                  )}
                   <button
                     key={user.id}
                     onClick={() => setSelectedId(active ? null : user.id)}
@@ -139,6 +157,11 @@ export default function Login() {
                         >
                           {roleBadgeCode(meta.code)}
                         </span>
+                        {meta.level && (
+                          <span className="flex-shrink-0 text-[10px] font-medium text-gray-300">
+                            L{meta.level}
+                          </span>
+                        )}
                       </div>
                       <p className="text-gray-400 text-xs truncate">{BLURB[meta.code]}</p>
                       <p className="text-gray-300 text-[10px] mt-0.5 truncate">{scopeDescription(user)}</p>
@@ -153,6 +176,7 @@ export default function Login() {
                       {active ? <Check size={11} className="text-white" strokeWidth={3} /> : null}
                     </div>
                   </button>
+                  </div>
                 )
               })}
             </div>
