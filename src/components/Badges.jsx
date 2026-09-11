@@ -8,7 +8,7 @@ export const cx = (...parts) => parts.filter(Boolean).join(' ')
  * The nine lead statuses from the Lead Module sheet. Terminal outcomes borrow the
  * reserved status palette (they genuinely mean good/bad); working states use
  * neutral tints so red is kept for things that are actually wrong. Every badge
- * carries its label, so colour never has to carry the meaning alone.
+ * carries.   its label, so colour never has to carry the meaning alone.
  */
 const STATUS_STYLE = {
   New: { cls: 'bg-blue-50 text-blue-700', dot: 'bg-blue-500' },
